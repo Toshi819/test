@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>学習ゲーム</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="simple">
+
+  <div id="app"></div>
+  <div id="version"></div>
+
+  <!-- Firebase + メインスクリプト -->
+  <script type="module">
+
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCCqLlsi_DRnDVZmPeMX_MXtCZRoOlA2C0",
+      authDomain: "study-game-2e925.firebaseapp.com",
+      projectId: "study-game-2e925",
+      storageBucket: "study-game-2e925.firebasestorage.app",
+      messagingSenderId: "435452343341",
+      appId: "1:435452343341:web:3a1f57e66a3fa7fc9df4a4"
+    };
+
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = getFirestore(firebaseApp);
+
+    // 🔥 script.js に渡す
+    window.db = db;
+
+    // メインスクリプト読み込み
+    import "./script.js";
+
+  </script>
+
+</body>
+</html>

@@ -1,4 +1,20 @@
-const db = window.db;
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc } 
+  from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+// ===== Firebase設定 =====
+const firebaseConfig = {
+  apiKey: "AIzaSyCCqLlsi_DRnDVZmPeMX_MXtCZRoOlA2C0",
+  authDomain: "study-game-2e925.firebaseapp.com",
+  projectId: "study-game-2e925",
+  storageBucket: "study-game-2e925.firebasestorage.app",
+  messagingSenderId: "435452343341",
+  appId: "1:435452343341:web:3a1f57e66a3fa7fc9df4a4"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
+
 const APP_VERSION = "1.0.0";
 
 console.log("script loaded");

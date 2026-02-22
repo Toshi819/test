@@ -6,6 +6,7 @@ import {
   getDoc, 
   updateDoc,
   collection,
+  onSnapshot,
   getDocs
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 
@@ -28,6 +29,7 @@ const APP_VERSION = "1.0.0";
 console.log("script loaded");
 const app = document.getElementById("app");
 
+let previousRanks = {};
 
 // ===== 教科データ =====
 const subjects = ["国語", "数学", "言語文化","情報産業と社会"];
@@ -238,12 +240,6 @@ const quizData = {
 
 };
 
-let gameMode = "normal"; // normal or time
-let combo = 0;
-let timer = null;
-let timeLimit = 10; // 秒
-let timeLeft = 0;
-
 
 // ===== データ取得 =====
 
@@ -289,12 +285,12 @@ function showRegister() {
   app.innerHTML = `
     <h2>新規登録</h2>
     <input id="newName" placeholder="ユーザー名を入力"><br>
-    <button class="main-btn" onclick="register()">登録</button>
+    <button  id="registerBtn" class="main-btn">登録</button>
     <button id="backBtn" class="back-btn">戻る</button>
     
   `;
   document.getElementById("backBtn").addEventListener("click", showStart);
-
+  document.getElementById("registerBtn").addEventListener("click", register);
 }
 
 
@@ -472,7 +468,7 @@ function showRoundSelect(subject) {
 
   let html = `<h2>${subject} - 回を選択</h2>`;
 
-  rounds.forEach(round => {
+  rounds.forEach((round, index) => {
     const key = subject + "_" + round;
     const score = user.scores && user.scores[key] ? user.scores[key] : 0;
     const totalQuestions =
@@ -481,10 +477,8 @@ function showRoundSelect(subject) {
         : 1;
 
     const rank = getRoundRank(score, totalQuestions);
-
     const starCount = getStars(score, totalQuestions);
 
-    // ★ 回ごとに星を作る
     let starsHtml = "";
     for (let i = 0; i < 3; i++) {
       const active = i < starCount ? "star active" : "star";
@@ -492,7 +486,7 @@ function showRoundSelect(subject) {
     }
 
     html += `
-      <button class="main-btn" onclick="startRound('${round}')">
+      <button id="roundBtn${index}" class="main-btn">
         ${round}<br>
         ベスト: ${score} | ランク: ${rank}<br>
         <div class="stars">${starsHtml}</div>
@@ -500,14 +494,24 @@ function showRoundSelect(subject) {
     `;
   });
 
-  // 完全制覇判定
   if (isPerfectClear(subject, user)) {
     html += `<h3 style="color: gold;">🏆 完全制覇！</h3>`;
   }
 
-  html += `<button class="back-btn" onclick="startGame()">戻る</button>`;
+  html += `<button id="backBtn" class="back-btn">戻る</button>`;
 
   app.innerHTML = html;
+
+  // 🔥 ここからイベント設定
+  rounds.forEach((round, index) => {
+    document
+      .getElementById(`roundBtn${index}`)
+      .addEventListener("click", () => startRound(round));
+  });
+
+  document
+    .getElementById("backBtn")
+    .addEventListener("click", startGame);
 }
 
 
@@ -548,6 +552,10 @@ function showModeSelect() {
   document.getElementById("backBtn")
     .addEventListener("click", startGame);
 }
+let gameMode = "normal";
+let timer;
+let timeLeft = 10;   // 1問あたり10秒
+let combo = 0;
 
 function startQuiz(mode) {
   gameMode = mode;
@@ -556,13 +564,20 @@ function startQuiz(mode) {
   combo = 0;
   showQuestion();
 }
+
 function showQuestion() {
   const question = currentQuiz[currentIndex];
 
   let html = `
     <h2>問題 ${currentIndex + 1} / ${currentQuiz.length}</h2>
-    <p>${question.q}</p>
   `;
+
+  if (gameMode === "time") {
+    timeLeft = 10;
+    html += `<p>残り時間: <span id="timer">${timeLeft}</span> 秒</p>`;
+  }
+
+  html += `<p>${question.q}</p>`;
 
   question.c.forEach((choice, index) => {
     html += `<button id="choice${index}" class="quiz-btn">${choice}</button>`;
@@ -571,6 +586,9 @@ function showQuestion() {
   html += `<button id="backBtn" class="back-btn">中断して戻る</button>`;
 
   app.innerHTML = html;
+  html += `<div id="comboEffect" class="combo-effect"></div>`;
+  html += `<div id="legendEffect" class="legend-effect"></div>`;
+
 
   question.c.forEach((_, index) => {
     document.getElementById(`choice${index}`)
@@ -579,9 +597,16 @@ function showQuestion() {
 
   document.getElementById("backBtn")
     .addEventListener("click", startGame);
+
+  if (gameMode === "time") {
+    startTimer();
+  }
 }
 
+
 function startTimer() {
+  clearInterval(timer);
+
   const timerElement = document.getElementById("timer");
 
   timer = setInterval(() => {
@@ -591,10 +616,28 @@ function startTimer() {
     if (timeLeft <= 0) {
       clearInterval(timer);
       combo = 0;
-      score -= 5; // タイムオーバー減点
+      score -= 5;
       nextQuestion();
     }
   }, 1000);
+}
+
+function showComboEffect() {
+  const effect = document.getElementById("comboEffect");
+  if (!effect) return;
+
+  let color = "#00e5ff";
+
+  if (combo >= 3) color = "#00ff88";
+  if (combo >= 5) color = "#ffd700";
+  if (combo >= 8) color = "#ff3b3b";
+
+  effect.style.color = color;
+  effect.textContent = `🔥 ${combo} COMBO!!`;
+
+  effect.classList.remove("combo-show");
+  void effect.offsetWidth; // 再アニメーション用リセット
+  effect.classList.add("combo-show");
 }
 
 function checkAnswer(button, selected) {
@@ -611,6 +654,9 @@ function checkAnswer(button, selected) {
     if (gameMode === "time") {
       combo++;
       score += 10 + combo; // コンボボーナス
+      showComboEffect();
+      
+
     } else {
       score += 10;
     }
@@ -635,8 +681,9 @@ function showExplanation(question) {
   app.innerHTML = `
     <h2>${score} 点</h2>
     <p>解説: ${question.e}</p>
-    <button class="main-btn" onclick="nextQuestion()">次へ</button>
+    <button id="nextQuestionBtn" class="main-btn">次へ</button>
   `;
+  document.getElementById("nextQuestionBtn").addEventListener("click", nextQuestion);
 }
 
 function nextQuestion() {
@@ -731,30 +778,83 @@ async function goHome() {
 
 
 
-async function showRanking() {
-  const snapshot = await getDocs(collection(db, "users"));
+let unsubscribeRanking = null;
 
-  let ranking = [];
+function showRanking() {
+  app.innerHTML = `
+    <h2>ランキング</h2>
+    <div id="rankingList">読み込み中...</div>
+    <button id="backBtn" class="back-btn">戻る</button>
+  `;
 
-  snapshot.forEach(docSnap => {
-    ranking.push(docSnap.data());
+  const rankingDiv = document.getElementById("rankingList");
+
+  // すでに監視してたら解除
+  if (unsubscribeRanking) {
+    unsubscribeRanking();
+  }
+
+  unsubscribeRanking = onSnapshot(collection(db, "users"), (snapshot) => {
+    let ranking = [];
+
+    snapshot.forEach(doc => {
+      ranking.push(doc.data());
+    });
+
+    ranking.sort((a, b) => b.totalScore - a.totalScore);
+
+    const currentId = localStorage.getItem("currentUser");
+
+    let html = "";
+    let newRanks = {};
+
+    ranking.forEach((user, index) => {
+      const currentRank = index + 1;
+      newRanks[user.id] = currentRank;
+
+      let medal = "";
+      if (index === 0) medal = "🥇";
+      else if (index === 1) medal = "🥈";
+      else if (index === 2) medal = "🥉";
+
+      let extraClass = "";
+      if (index === 0) extraClass += " ranking-first";
+      if (user.id === currentId) extraClass += " ranking-me";
+
+      let indicator = "";
+
+      if (previousRanks[user.id]) {
+        if (currentRank < previousRanks[user.id]) {
+          indicator = `<span class="rank-up">▲UP</span>`;
+        } else if (currentRank > previousRanks[user.id]) {
+          indicator = `<span class="rank-down">▼DOWN</span>`;
+        }
+      }
+
+
+      html += `
+        <div class="ranking-item ${extraClass}" 
+            style="animation-delay:${index * 0.1}s">
+          ${medal} ${currentRank}位 
+          ${user.name} 
+          <strong>${user.totalScore}</strong>
+          ${indicator}
+        </div>
+      `;
+
+    });
+
+    rankingDiv.innerHTML = html;
+
+    previousRanks = newRanks;
   });
 
-  ranking.sort((a, b) => b.totalScore - a.totalScore);
 
-  let html = "<h2>ランキング</h2>";
 
-  ranking.forEach((user, index) => {
-    html += `
-      <p>${index + 1}位 ${user.name} - ${user.totalScore}</p>
-    `;
+  document.getElementById("backBtn").addEventListener("click", () => {
+    if (unsubscribeRanking) unsubscribeRanking();
+    goHome();
   });
-
-  html += `<button id="backBtn" class="back-btn">戻る</button>`;
-
-  app.innerHTML = html;
-
-  document.getElementById("backBtn").addEventListener("click", goHome);
 }
 
 

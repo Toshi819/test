@@ -19,12 +19,7 @@ const APP_VERSION = "1.0.0";
 
 console.log("script loaded");
 const app = document.getElementById("app");
-import {
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc
-} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
 
 // ===== 教科データ =====
 const subjects = ["国語", "数学", "言語文化","情報産業と社会"];

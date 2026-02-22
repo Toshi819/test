@@ -277,8 +277,11 @@ function showRegister() {
     <h2>新規登録</h2>
     <input id="newName" placeholder="ユーザー名を入力"><br>
     <button class="main-btn" onclick="register()">登録</button>
-    <button class="back-btn" onclick="showStart()">戻る</button>
+    <button id="backBtn" class="back-btn">戻る</button>
+    
   `;
+  document.getElementById("backBtn").addEventListener("click", showStart);
+
 }
 
 

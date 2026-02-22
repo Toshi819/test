@@ -756,3 +756,16 @@ document.addEventListener("DOMContentLoaded", () => {
     v.innerText = "Version " + APP_VERSION;
   }
 });
+window.showLogin = showLogin;
+window.showRegister = showRegister;
+window.toggleTheme = toggleTheme;
+window.login = login;
+window.register = register;
+window.startGame = startGame;
+window.selectSubject = selectSubject;
+window.startRound = startRound;
+window.checkAnswer = checkAnswer;
+window.nextQuestion = nextQuestion;
+window.goHome = goHome;
+window.logout = logout;
+window.showRanking = showRanking;

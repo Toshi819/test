@@ -1,6 +1,14 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc } 
-  from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { 
+  getFirestore, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  updateDoc,
+  collection,
+  getDocs
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
 
 // ===== Firebase設定 =====
 const firebaseConfig = {
@@ -265,11 +273,16 @@ window.onload = async () => {
 function showStart() {
   app.innerHTML = `
     <h1>学習ゲーム</h1>
-    <button class="main-btn" onclick="showLogin()">ログイン</button>
-    <button class="main-btn" onclick="showRegister()">新規登録</button>
-    <button class="main-btn" onclick="toggleTheme()">UIカスタム</button>
+    <button id="loginBtn" class="main-btn">ログイン</button>
+    <button id="registerBtn" class="main-btn">新規登録</button>
+    <button id="themeBtn" class="main-btn">UIカスタム</button>
   `;
+
+  document.getElementById("loginBtn").addEventListener("click", showLogin);
+  document.getElementById("registerBtn").addEventListener("click", showRegister);
+  document.getElementById("themeBtn").addEventListener("click", toggleTheme);
 }
+
 
 // ===== 新規登録 =====
 function showRegister() {
@@ -328,10 +341,14 @@ function showLogin() {
     <h2>ログイン</h2>
     <input id="loginId" placeholder="IDを入力"><br>
     <input id="loginName" placeholder="ユーザー名を入力"><br>
-    <button class="main-btn" onclick="login()">ログイン</button>
-    <button class="back-btn" onclick="showStart()">戻る</button>
+    <button id="loginBtn" class="main-btn">ログイン</button>
+    <button id="backBtn" class="back-btn">戻る</button>
   `;
+
+  document.getElementById("loginBtn").addEventListener("click", login);
+  document.getElementById("backBtn").addEventListener("click", showStart);
 }
+
 
 async function login() {
   let id = document.getElementById("loginId").value.trim().toUpperCase();
@@ -408,35 +425,40 @@ function showHome(user) {
     <p>合計ベストスコア: ${user.totalScore}</p>
     <p>総合ランク: ${rank}</p>
 
-    <button class="main-btn" onclick="startGame()">問題を解く</button>
-    <button class="main-btn" onclick="showRanking()">ランキングを見る</button>
-    <button class="main-btn" onclick="toggleTheme()">UIカスタム</button>
-    <button class="back-btn" onclick="logout()">ログアウト</button>
+    <button id="startBtn" class="main-btn">問題を解く</button>
+    <button id="rankBtn" class="main-btn">ランキングを見る</button>
+    <button id="themeBtn" class="main-btn">UIカスタム</button>
+    <button id="logoutBtn" class="back-btn">ログアウト</button>
   `;
+
+  document.getElementById("startBtn").addEventListener("click", startGame);
+  document.getElementById("rankBtn").addEventListener("click", showRanking);
+  document.getElementById("themeBtn").addEventListener("click", toggleTheme);
+  document.getElementById("logoutBtn").addEventListener("click", logout);
 }
 
 
 
 // ===== 教科選択画面 =====
 function startGame() {
-  let html = `
-    <h2>教科を選択</h2>
-  `;
+  let html = `<h2>教科を選択</h2>`;
 
-  subjects.forEach(subject => {
-    html += `
-      <button class="main-btn subject-btn" onclick="selectSubject('${subject}')">
-        ${subject}
-      </button><br>
-    `;
+  subjects.forEach((subject, index) => {
+    html += `<button id="subject${index}" class="main-btn subject-btn">${subject}</button><br>`;
   });
 
-  html += `
-    <button class="back-btn" onclick="goHome()">戻る</button>
-  `;
+  html += `<button id="backBtn" class="back-btn">戻る</button>`;
 
   app.innerHTML = html;
+
+  subjects.forEach((subject, index) => {
+    document.getElementById(`subject${index}`)
+      .addEventListener("click", () => selectSubject(subject));
+  });
+
+  document.getElementById("backBtn").addEventListener("click", goHome);
 }
+
 
 // ===== 教科選択処理 =====
 function selectSubject(subject) {
@@ -512,11 +534,21 @@ function startRound(round) {
 function showModeSelect() {
   app.innerHTML = `
     <h2>モード選択</h2>
-    <button class="main-btn" onclick="startQuiz('normal')">通常モード</button>
-    <button class="main-btn" onclick="startQuiz('time')">時間制限モード</button>
-    <button class="back-btn" onclick="startGame()">戻る</button>
+    <button id="normalBtn" class="main-btn">通常モード</button>
+    <button id="timeBtn" class="main-btn">時間制限モード</button>
+    <button id="backBtn" class="back-btn">戻る</button>
   `;
+
+  document.getElementById("normalBtn")
+    .addEventListener("click", () => startQuiz("normal"));
+
+  document.getElementById("timeBtn")
+    .addEventListener("click", () => startQuiz("time"));
+
+  document.getElementById("backBtn")
+    .addEventListener("click", startGame);
 }
+
 function startQuiz(mode) {
   gameMode = mode;
   currentIndex = 0;
@@ -527,35 +559,28 @@ function startQuiz(mode) {
 function showQuestion() {
   const question = currentQuiz[currentIndex];
 
-  let timerHtml = "";
-
-  if (gameMode === "time") {
-    timeLeft = timeLimit;
-    timerHtml = `<h3>残り時間: <span id="timer">${timeLeft}</span> 秒</h3>`;
-  }
-
   let html = `
     <h2>問題 ${currentIndex + 1} / ${currentQuiz.length}</h2>
-    ${timerHtml}
     <p>${question.q}</p>
   `;
 
   question.c.forEach((choice, index) => {
-    html += `
-      <button class="quiz-btn"
-        data-index="${index}"
-        onclick="checkAnswer(this, ${index})">
-        ${choice}
-      </button>
-    `;
+    html += `<button id="choice${index}" class="quiz-btn">${choice}</button>`;
   });
-  html += `<button class="back-btn" onclick="startGame()">中断して戻る</button>`;
+
+  html += `<button id="backBtn" class="back-btn">中断して戻る</button>`;
+
   app.innerHTML = html;
 
-  if (gameMode === "time") {
-    startTimer();
-  }
+  question.c.forEach((_, index) => {
+    document.getElementById(`choice${index}`)
+      .addEventListener("click", (e) => checkAnswer(e.target, index));
+  });
+
+  document.getElementById("backBtn")
+    .addEventListener("click", startGame);
 }
+
 function startTimer() {
   const timerElement = document.getElementById("timer");
 
@@ -674,10 +699,14 @@ async function finishQuiz() {
   });
 
   app.innerHTML = `
-    <h2>クイズ終了！</h2>
-    <p>スコア: ${score}</p>
-    <button class="main-btn" onclick="goHome()">ホームへ</button>
-  `;
+  <h2>クイズ終了！</h2>
+  <p>スコア: ${score}</p>
+  <button id="homeBtn" class="main-btn">ホームへ</button>
+`;
+
+  document.getElementById("homeBtn")
+    .addEventListener("click", goHome);
+
 }
 
 
@@ -703,40 +732,31 @@ async function goHome() {
 
 
 async function showRanking() {
-  const querySnapshot = await getDocs(collection(db, "users"));
-  const currentId = localStorage.getItem("currentUser");
+  const snapshot = await getDocs(collection(db, "users"));
 
-  let userArray = [];
+  let ranking = [];
 
-  querySnapshot.forEach((doc) => {
-    userArray.push(doc.data());
+  snapshot.forEach(docSnap => {
+    ranking.push(docSnap.data());
   });
 
-  userArray.sort((a, b) => b.totalScore - a.totalScore);
+  ranking.sort((a, b) => b.totalScore - a.totalScore);
 
-  let html = `<h2>🏆 総合ランキング</h2>`;
+  let html = "<h2>ランキング</h2>";
 
-  userArray.forEach((user, index) => {
-    let medal = "";
-    if (index === 0) medal = "🥇";
-    else if (index === 1) medal = "🥈";
-    else if (index === 2) medal = "🥉";
-
-    const isMe = user.id === currentId ? " (あなた)" : "";
-
+  ranking.forEach((user, index) => {
     html += `
-      <div class="rank-card">
-        <h3>${index + 1}位 ${medal}</h3>
-        <p>${user.name}${isMe}</p>
-        <p>スコア: ${user.totalScore}</p>
-      </div>
+      <p>${index + 1}位 ${user.name} - ${user.totalScore}</p>
     `;
   });
 
-  html += `<button class="back-btn" onclick="goHome()">戻る</button>`;
+  html += `<button id="backBtn" class="back-btn">戻る</button>`;
 
   app.innerHTML = html;
+
+  document.getElementById("backBtn").addEventListener("click", goHome);
 }
+
 
 function logout() {
   localStorage.removeItem("currentUser");
@@ -759,16 +779,4 @@ document.addEventListener("DOMContentLoaded", () => {
     v.innerText = "Version " + APP_VERSION;
   }
 });
-window.showLogin = showLogin;
-window.showRegister = showRegister;
-window.toggleTheme = toggleTheme;
-window.login = login;
-window.register = register;
-window.startGame = startGame;
-window.selectSubject = selectSubject;
-window.startRound = startRound;
-window.checkAnswer = checkAnswer;
-window.nextQuestion = nextQuestion;
-window.goHome = goHome;
-window.logout = logout;
-window.showRanking = showRanking;
+

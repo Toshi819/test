@@ -701,14 +701,7 @@ async function goHome() {
 
 
 
-import {
-  doc,
-  setDoc,
-  getDoc,
-  updateDoc,
-  collection,
-  getDocs
-} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
 
 
 async function showRanking() {
